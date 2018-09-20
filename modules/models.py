@@ -25,7 +25,8 @@ from keras.applications import VGG16
 #                                   VGG16
 # =============================================================================
 
-def get_VGG16():
+
+def get_my_VGG16():
     
     model = Sequential()
     
@@ -86,32 +87,72 @@ def get_VGG16():
 #                                 VGG16 pretrained
 # =============================================================================
 
-def get_pre_VGG16():
+def get_pre_VGG16(conv_base):
     
-    conv_base = VGG16(weights='imagenet',include_top=False,input_shape=(150, 150, 3))
-    conv_base.trainable = True
 
-    set_trainable = False
-    
-    for layer in conv_base.layers:
-        if layer.name == 'block5_conv1':
-            set_trainable = True
-        if set_trainable:
-            layer.trainable = True
-        else:
-            layer.trainable = False
+    conv_base.trainable = False
 
     model = Sequential()
-    
-    
     model.add(conv_base)
     model.add(Flatten())
-    model.add(Dense(512, activation='relu'))
-    model.add(Dropout(0.9))
+    model.add(Dense(256, activation='relu')) # bylo 256
     model.add(Dense(1, activation='sigmoid'))
-    
+
     return model
 
 # =============================================================================
 #                              Resnet50 pretrained
 # =============================================================================
+
+def get_pre_Resnet50(res_base):
+    
+    res_base.trainable = False
+
+    model = Sequential()
+    model.add(res_base)
+    model.add(Flatten())
+    model.add(Dense(256, activation='relu')) # bylo 256
+    model.add(Dense(1, activation='sigmoid'))
+
+    return model
+
+# =============================================================================
+#                              Fine Tuning
+# =============================================================================
+
+def fine_tuning(model,conv_base,layer_name):
+    
+    conv_base.trainable = True
+    set_trainable = False
+    
+    for layer in conv_base.layers:
+        
+        if layer.name == layer_name:
+            set_trainable = True
+        if set_trainable:
+            layer.trainable = True
+        else:
+            layer.trainable = False
+    
+    return model
+
+# =============================================================================
+#                               Test Model
+# =============================================================================
+
+def test_model(model,test_datagen,test_directory):
+    
+    model_stack = {}
+    
+    test_generator = test_datagen.flow_from_directory(test_directory,
+                                                      target_size=(200, 200),
+                                                      batch_size=32,class_mode='binary')
+
+    test_loss, test_acc = model.evaluate_generator(test_generator, steps=50)
+
+    model_stack["test_acc"] = test_acc
+    model_stack["test_loss"] = test_loss
+
+    return model_stack
+
+

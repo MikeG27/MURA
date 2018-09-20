@@ -9,10 +9,39 @@ import pandas as pd
 #                              Auxiliary functions
 # =============================================================================
 
+
+def copy_data(src,dst,file = False):
+    
+    '''
+    file : 
+    * True = copy file
+    * false = copy all folder
+    '''
+    if not os.path.exists(dst):
+        if file == False:
+            shutil.copytree(src,dst,symlinks=True)
+    
+    if file == True:
+        shutil.copy(src,dst)
+            
+def get_csv(dataset_path,dest):
+    
+    for i in os.listdir(dataset_path):
+        if "csv" in i :
+            copy_data(os.path.join(dataset_path,i),dest,file = True)
+            
+
+
+def create_folder(path):
+    if not os.path.exists(path):
+        print("Not exist")
+        os.mkdir(path)
+    
+
 def get_main_f(folder_list):
     
     """
-    Get list of main folders of main directory to variable
+    Get list of folders in directory to variable
     
     Input : list of directories
     
@@ -110,16 +139,47 @@ def separate_images(img_path,abnormal_class,normal_class):
     p = 0 #positive index
     
     for i in img_path:
+        print(i)
         if os.path.exists(i):
-            
             if "negative" in i:
                 n += 1
                 src = i
                 dest = (normal_class)
                 shutil.copy(src,dest+"/normal"+str(n)+".png")
+                print("negative")
             
             elif "positive" in i:
                 p += 1
                 src = i
                 dest = (abnormal_class)
                 shutil.copy(src,dest+"/abnormal"+str(p)+".png")
+                print("positive")
+             
+                
+def move_pictures_to_folder(src,dst,n_pictures,print_status = False):
+    
+    n = n_pictures
+
+    if print_status:
+        print("Move function: \n" )
+        print("\nBefore")
+        print("Source images : ", len(os.listdir(src)))
+        print("Destination images : ",len(os.listdir(dst)))
+    
+    for i in reversed(sorted(os.listdir(src))):
+        shutil.move(src + "/" + str(i),dst)
+        n = n - 1
+        if n == 0:
+            break
+    
+    if print_status:
+        print("\nAfter")
+        print("Source images : ", len(os.listdir(src)))
+        print("Destination images : ",len(os.listdir(dst)))
+        
+
+       
+    
+    
+        
+

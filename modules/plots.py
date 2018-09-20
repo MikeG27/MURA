@@ -58,7 +58,7 @@ def plot_training(history,save_fig,name,val = True):
 
     epochs = range(len(acc))
 
-    plt.figure(2,figsize=(20,10))
+    plt.figure(figsize=(20,10))
 
     plt.subplot(2,1,1)
     plt.plot(epochs, acc, 'b', label='Training acc')
