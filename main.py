@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
 
+from modules import my_utils
+from modules import models
+from modules import plots
 
 from keras.models import Sequential
 from keras.models import load_model
@@ -26,6 +29,7 @@ from keras.layers import Flatten
 from keras.layers import Dropout
 from keras.layers import BatchNormalization
 from keras import optimizers
+from keras.preprocessing import image
 
 # =============================================================================
 #                           Create folder structure
@@ -34,10 +38,11 @@ from keras import optimizers
 
 main_folder_path = "/home/michal/Pulpit/MURA/MURA-v1.1"
 dataset_path = '/home/michal/Pobrane/MURA-v1.1'
+model_path = "/home/michal/Pulpit/MURA/MURA-v1.1/models"
+plots_path = "/home/michal/Pulpit/MURA/MURA-v1.1/plots"
 
 
 os.chdir(main_folder_path) # Go to main directory
-from modules import models, my_utils, plots
 
 #Get hand XRAY data
 my_utils.copy_data(os.path.join(dataset_path,"train/XR_HAND"),os.path.join(main_folder_path,"train/XR_HAND"))
@@ -90,7 +95,7 @@ my_utils.create_folder(hand_test_abnormal)
 
 #CSV
 main_structure = my_utils.get_main_f(os.listdir())
-os.chdir(main_structure[4])
+os.chdir(main_structure[5])
 csv_structure = my_utils.read_csv(os.listdir())
 path_train,path_valid,label_valid,label_train = my_utils.read_csv(os.listdir())
 os.chdir(main_folder_path)
@@ -101,7 +106,7 @@ os.chdir(main_folder_path)
 path_train = path_train.rename(columns = {'MURA-v1.1/train/XR_SHOULDER/patient00001/study1_positive/image1.png':'img'})
 path_valid = path_valid.rename(columns = {'MURA-v1.1/valid/XR_WRIST/patient11185/study1_positive/image1.png':'img'})
 
-# Use function and get only HAND directories
+# Get only HAND directories
 path_train = my_utils.get_selected_feature(path_train,"MURA-v1.1/train/XR_HAND")
 path_valid = my_utils.get_selected_feature(path_valid,"MURA-v1.1/valid/XR_HAND")
 
@@ -138,41 +143,28 @@ my_utils.separate_images(path_valid,hand_valid_abnormal,hand_valid_normal)
 #                               Data Overview
 # =============================================================================
 
-print("\nSummary of hand images : ")
+#Get sample image 
+img_path = ('/home/michal/Pulpit/MURA/MURA-v1.1/valid/XR_HAND/patient11497/study1_positive/image3.png')
+img = image.load_img(img_path)
+img1 = image.img_to_array(img)
+
+img
+print("\nSummary of hand images : \n")
+
+print("Image height : ", img1.shape[0])
+print("Image width : ", img1.shape[1])
+print("Image depth : ", img1.shape[2])
 
 print("\nTrain images : ",len(path_train))
 print("Valid images : ",len(path_valid))
 
-print("\n2. Hand images overview : \n")
-
 print("Train abnormal img : ",len(os.listdir(hand_train_abnormal)))
 print("Train normal img : ",len(os.listdir(hand_train_normal)))
 print("Valid abnormal img : ",len(os.listdir(hand_valid_abnormal)))
 print("Valid normal img : ",len(os.listdir(hand_valid_normal)))
-#print("Test abnormal img : ",len(os.listdir(hand_test_abnormal)))
-#print("Test normal img : ",len(os.listdir(hand_test_normal)))
 
 
-#print("\nI dont like this split...")
 
-'''
-#From train to test
-my_utils.move_pictures_to_folder(hand_train_normal,hand_test_normal,n_pictures=600)
-my_utils.move_pictures_to_folder(hand_train_abnormal,hand_test_abnormal,n_pictures=300)
-# From train to valid
-my_utils.move_pictures_to_folder(hand_train_normal,hand_valid_normal,n_pictures=400)
-my_utils.move_pictures_to_folder(hand_train_abnormal,hand_valid_abnormal,n_pictures=200)
-
-print("\n3.After reorganizing data : \n")
-
-print("Train abnormal img : ",len(os.listdir(hand_train_abnormal)))
-print("Train normal img : ",len(os.listdir(hand_train_normal)))
-print("Valid abnormal img : ",len(os.listdir(hand_valid_abnormal)))
-print("Valid normal img : ",len(os.listdir(hand_valid_normal)))
-print("Test abnormal img : ",len(os.listdir(hand_test_abnormal)))
-print("Test normal img : ",len(os.listdir(hand_test_normal)))
-
-'''
 # =============================================================================
 #                               Generator settings
 # =============================================================================
@@ -194,14 +186,15 @@ test_datagen = ImageDataGenerator(rescale=1./255)
 train_generator = train_datagen.flow_from_directory(
         hand_train,
         target_size=(200, 200),
-        batch_size=32,
+        batch_size=16,
         class_mode='binary')
 
 validation_generator = test_datagen.flow_from_directory(
         hand_valid,
         target_size=(200, 200),
-        batch_size=32,
+        batch_size=16,
         class_mode='binary')
+
 
 # =============================================================================
 #                                 VGG16
@@ -223,11 +216,13 @@ model.compile(loss='binary_crossentropy',
 model.summary()
 
 history = model.fit_generator(train_generator,
-                              steps_per_epoch=100,epochs=40,
+                              steps_per_epoch=100,epochs=25,
                               validation_data=validation_generator,
                               validation_steps=50,verbose=2)
 
+
 models_stack["VGG16"] = models.test_model(model,test_datagen,hand_valid)
+models.save_model(model,model_path,"VGG16.h5")
 
 
 
@@ -247,12 +242,11 @@ history1 = model.fit_generator(train_generator,
                                validation_data=validation_generator,
                                validation_steps=50)
 
-plots.plot_training(history1,main_folder_path,"VGG16_fine_tune")
-
+plots.plot_training(history1,plots_path,"VGG16_fine_tune")
 models_stack["VGG16_fine_tune"] = models.test_model(model,test_datagen,hand_valid)
 
 
-
+models.save_model(model,model_path,"VGG16_fine_tune.h5")
 
 # =============================================================================
 #                               RESNET50
@@ -266,17 +260,19 @@ res_base = ResNet50(weights='imagenet',
 
 resnet = models.get_pre_Resnet50(res_base)
 resnet.compile(loss='binary_crossentropy',
-              optimizer=optimizers.RMSprop(lr=1e-4), # 
+              optimizer=optimizers.RMSprop(lr=1e-5), # 
               metrics=['acc'])
 
 resnet.summary()
 
 history2 = resnet.fit_generator(train_generator,
-                              steps_per_epoch=125,epochs=10,
+                              steps_per_epoch=100,epochs=10,
                               validation_data=validation_generator,
                               validation_steps=50,verbose=2)
 
 models_stack["Resnet"] = models.test_model(resnet,test_datagen,hand_valid)
+
+models.save_model(model,model_path,"RestNet.h5")
 
 # =============================================================================
 #                               ResNet fine_tune
@@ -289,12 +285,12 @@ resnet.compile(loss='binary_crossentropy',
 
 resnet.summary()
 history1 = resnet.fit_generator(train_generator,
-                               steps_per_epoch=100,
+                               steps_per_epoch=200,
                                epochs=125,
                                validation_data=validation_generator,
                                validation_steps=50)
 
-models_stack["RestNet_fine_tune"] = models.test_model(model,test_datagen,hand_valid)
+models_stack["RestNet_fine_tune"] = models.test_model(resnet,test_datagen,hand_valid)
 
 # =============================================================================
 #                                   Test 1 part
