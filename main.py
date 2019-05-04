@@ -77,17 +77,6 @@ hand_valid_abnormal = os.path.join(hand_valid,"abnormal")
 my_utils.create_folder(hand_valid_abnormal)
 
 
-'''
-# Test
-hand_test = os.path.join(hand_path,"test")
-my_utils.create_folder(hand_test)
-
-hand_test_normal = os.path.join(hand_test,"normal")
-my_utils.create_folder(hand_test_normal)
-    
-hand_test_abnormal = os.path.join(hand_test,"abnormal")
-my_utils.create_folder(hand_test_abnormal)
-'''
 
 # =============================================================================
 #                               Preprocessing
